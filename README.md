@@ -7,7 +7,7 @@ This repository contains the JUAS longitudinal beam dynamics tutorial notebooks.
 ## Installation
 
 Follow first the installation instructions detailed in the [dedicated repository](https://github.com/JUAS-tutorials/xsuite-installation).
-This repository can be cloned using git `git clone https://github.com/JUAS-tutorials/longitudinal-xsuite-tutorial` or the repository content can be downloaded directly via [this link](https://github.com/JUAS-tutorials/longitudinal-xsuite-tutorial/archive/refs/heads/main.zip).
+This repository can be cloned using git `git clone https://github.com/JUAS-tutorials/longitudinal-xsuite-tutorial.git` or the repository content can be downloaded directly via [this link](https://github.com/JUAS-tutorials/longitudinal-xsuite-tutorial/archive/refs/heads/main.zip).
 
 ## Content of the notebooks
 
