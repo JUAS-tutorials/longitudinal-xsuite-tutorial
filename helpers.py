@@ -2,9 +2,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as ani
 
+from scipy.constants import m_p, c, e
+
 from xpart.longitudinal.rf_bucket import RFBucket
 
-def plot_initial_distribution_and_rf_bucket(rfbucket, particle_distribution):
+def plot_initial_distribution_and_rf_bucket(line, rfbucket, particle_distribution):
     fig, ax = plt.subplots(1, 1, figsize=(8, 6))
 
     # Separatrix data
@@ -14,13 +16,24 @@ def plot_initial_distribution_and_rf_bucket(rfbucket, particle_distribution):
     # particle data
     particle_p0c = particle_distribution.p0c[0]
 
+    # RF frequency
+    frequency_rf = line.elements[0].frequency_rf
+    
+    # Particle beta
+    particle_beta = line.particle_ref.beta0
+
     offset_x_separatrix =  -rfbucket.z_sfp
 
     # Conversion factor the particle data
     # The x and y-axis factor are used to convert the data from (time, Energy) to (length, dp/p) scales
     # factor_x_axis = 1 / c * 1e9
-    factor_x_axis = 1
-    (xlabel, xlim) = ('z [m]', (-100, 100)) if factor_x_axis == 1 else ('t [ns]', (-0.2, 0.2))
+    # factor_x_axis = 1
+    # (xlabel, xlim) = ('z [m]', (-100, 100)) if factor_x_axis == 1 else ('t [ns]', (-0.2, 0.2))
+    
+    # The x and y-axis factor are used to convert the data from (z, P) to (Phi, E) scales
+    factor_x_axis = 1 / (particle_beta * c) * (frequency_rf * 2 * np.pi)
+    # factor_x_axis = 1
+    (xlabel, xlim) = ('z [m]', (-100, 100)) if factor_x_axis == 1 else (r'$\phi$ [rad]', (-3.5, 3.5))
 
     factor_y_axis = particle_p0c/1e9
     # factor_y_axis = 1
@@ -47,7 +60,7 @@ def plot_initial_distribution_and_rf_bucket(rfbucket, particle_distribution):
 
 
 def plot_rf_bucket_frame(line, ii_frame, gamma_value_list, p0c_value_list, pzeta_value_list, rf_bucket_properties_dict,
-m_p, e, c, zeta_value_list, delta_value_list, turn_number_list):
+zeta_value_list, delta_value_list, turn_number_list):
 
     gamma = gamma_value_list[ii_frame]
     energy = gamma * m_p * c**2 / (e*1e9) 
@@ -97,7 +110,7 @@ m_p, e, c, zeta_value_list, delta_value_list, turn_number_list):
 
 
 def plot_rf_bucket_frame_acceleration(line, ii_frame, gamma_value_list, p0c_value_list, pzeta_value_list, rf_bucket_properties_dict_list,
-m_p, e, c, zeta_value_list, delta_value_list, turn_number_list):
+zeta_value_list, delta_value_list, turn_number_list):
 
     gamma = gamma_value_list[ii_frame]
     energy = gamma * m_p * c**2 / (e*1e9) 
@@ -148,11 +161,13 @@ m_p, e, c, zeta_value_list, delta_value_list, turn_number_list):
 
 
 def plot_rf_bucket_animation_persistent(line, gamma_value_list, p0c_value_list, pzeta_value_list, rf_bucket_properties_dict,
-m_p, e, c, zeta_value_list, delta_value_list, turn_number_list):
+zeta_value_list, delta_value_list, turn_number_list):
 
     gamma = gamma_value_list[0]
     energy = gamma * m_p * c**2 / (e*1e9) 
     particle_p0c = p0c_value_list[0]
+    particle_beta = np.sqrt(1-1/(gamma**2))
+    frequency_rf = line.elements[0].frequency_rf
 
     rf_bucket_properties_dict.update({'gamma': gamma}) 
 
@@ -163,10 +178,11 @@ m_p, e, c, zeta_value_list, delta_value_list, turn_number_list):
 
 
 
-    # factor_x_axis = 1 / c * 1e9
-    factor_x_axis = 1
-    (xlabel, xlim) = ('z [m]', (-100, 100)) if factor_x_axis == 1 else ('t [ns]', (-0.2, 0.2))
-    factor_y_axis = particle_p0c/1e9
+    factor_x_axis = (1 / (particle_beta * c)) * (2*np.pi*frequency_rf)
+    # factor_x_axis = 1
+    (xlabel, xlim) = ('z [m]', (-100, 100)) if factor_x_axis == 1 else ('Phi [rad]', (-3.5, 3.5))
+    
+    factor_y_axis = particle_beta*particle_p0c/1e9
     (ylabel, ylim) = (r'\Delta p / p_0', (-3*upper_separatrix.max(), 3*upper_separatrix.max())) if factor_y_axis == 1 else (r'$\Delta E$ [GeV]', (-2*upper_separatrix.max()*factor_y_axis, 2*upper_separatrix.max()*factor_y_axis))
 
     fig, ax = plt.subplots()
@@ -193,8 +209,9 @@ m_p, e, c, zeta_value_list, delta_value_list, turn_number_list):
 
     def update_plot(frame_number):
         particle_p0c = p0c_value_list[frame_number]
-        # factor_x_axis = 1 / c * 1e9
-        factor_x_axis = 1
+        particle_beta = np.sqrt(1-1/(gamma_value_list[frame_number]**2))
+        factor_x_axis = 1 / (particle_beta * c) * (2*np.pi*frequency_rf)
+        # factor_x_axis = 1
         factor_y_axis = particle_p0c/1e9
 
         rf_bucket_properties_dict.update({'gamma': gamma_value_list[frame_number]}) 
@@ -246,11 +263,13 @@ m_p, e, c, zeta_value_list, delta_value_list, turn_number_list):
 
 
 def plot_rf_bucket_animation(line, gamma_value_list, p0c_value_list, pzeta_value_list, rf_bucket_properties_dict,
-m_p, e, c, zeta_value_list, delta_value_list, turn_number_list):
+zeta_value_list, delta_value_list, turn_number_list):
 
     gamma = gamma_value_list[0]
     energy = gamma * m_p * c**2 / (e*1e9) 
     particle_p0c = p0c_value_list[0]
+    particle_beta = np.sqrt(1-1/(gamma**2))
+    frequency_rf = line.elements[0].frequency_rf
 
     rf_bucket_properties_dict.update({'gamma': gamma})
     rfbucket = RFBucket(**rf_bucket_properties_dict)
@@ -260,10 +279,11 @@ m_p, e, c, zeta_value_list, delta_value_list, turn_number_list):
 
 
 
-    # factor_x_axis = 1 / c * 1e9
-    factor_x_axis = 1
-    (xlabel, xlim) = ('z [m]', (-100, 100)) if factor_x_axis == 1 else ('t [ns]', (-0.2, 0.2))
-    factor_y_axis = particle_p0c/1e9
+    factor_x_axis = 1 / (particle_beta * c) * (2*np.pi*frequency_rf)
+    # factor_x_axis = 1
+    (xlabel, xlim) = ('z [m]', (-100, 100)) if factor_x_axis == 1 else ('Phi [rad]', (-3.5, 3.5))
+    
+    factor_y_axis = particle_beta * particle_p0c/1e9
     (ylabel, ylim) = (r'\Delta p / p_0', (-3*upper_separatrix.max(), 3*upper_separatrix.max())) if factor_y_axis == 1 else (r'$\Delta E$ [GeV]', (-2*upper_separatrix.max()*factor_y_axis, 2*upper_separatrix.max()*factor_y_axis))
     ylim = (-0.1, 0.1)
 
@@ -291,8 +311,9 @@ m_p, e, c, zeta_value_list, delta_value_list, turn_number_list):
 
     def update_plot(frame_number):
         particle_p0c = p0c_value_list[frame_number]
-        # factor_x_axis = 1 / c * 1e9
-        factor_x_axis = 1
+        particle_beta = np.sqrt(1-1/(gamma_value_list[frame_number]**2))
+        factor_x_axis = 1 / (particle_beta * c) * (2*np.pi*frequency_rf)
+        # factor_x_axis = 1
         factor_y_axis = particle_p0c/1e9
 
         rf_bucket_properties_dict.update({'gamma': gamma_value_list[frame_number]})
@@ -302,8 +323,8 @@ m_p, e, c, zeta_value_list, delta_value_list, turn_number_list):
         upper_separatrix = rfbucket.separatrix(zeta_range)
         lower_separatrix = -rfbucket.separatrix(zeta_range)
 
-        upper_separatrix_plot.set_xdata((zeta_range+offset_x_separatrix))
-        lower_separatrix_plot.set_xdata((zeta_range+offset_x_separatrix))
+        upper_separatrix_plot.set_xdata((zeta_range+offset_x_separatrix)*factor_x_axis)
+        lower_separatrix_plot.set_xdata((zeta_range+offset_x_separatrix)*factor_x_axis)
 
         upper_separatrix_plot.set_ydata(upper_separatrix*factor_y_axis)
         lower_separatrix_plot.set_ydata(lower_separatrix*factor_y_axis)
@@ -349,7 +370,7 @@ m_p, e, c, zeta_value_list, delta_value_list, turn_number_list):
 
 
 def plot_rf_bucket_animation_acceleration(line, gamma_value_list, p0c_value_list, pzeta_value_list, rf_bucket_properties_dict_list,
-m_p, e, c, zeta_value_list, delta_value_list, turn_number_list):
+zeta_value_list, delta_value_list, turn_number_list):
 
     gamma = gamma_value_list[0]
     energy = gamma * m_p * c**2 / (e*1e9) 
