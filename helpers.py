@@ -23,33 +23,27 @@ def plot_initial_distribution_and_rf_bucket(line, rfbucket, particle_distributio
     particle_beta = line.particle_ref.beta0
 
     offset_x_separatrix =  -rfbucket.z_sfp
-
-    # Conversion factor the particle data
-    # The x and y-axis factor are used to convert the data from (time, Energy) to (length, dp/p) scales
-    # factor_x_axis = 1 / c * 1e9
-    # factor_x_axis = 1
-    # (xlabel, xlim) = ('z [m]', (-100, 100)) if factor_x_axis == 1 else ('t [ns]', (-0.2, 0.2))
     
     # The x and y-axis factor are used to convert the data from (z, P) to (Phi, E) scales
     factor_x_axis = 1 / (particle_beta * c) * (frequency_rf * 2 * np.pi)
+    (xlabel, xlim) = (r'$\phi$ [rad]', (-np.pi, 2*np.pi))
+    additional_phi_offset = np.deg2rad(line.elements[0].lag_rf) # it's in degrees in Xsuite
+    
     # factor_x_axis = 1
-    (xlabel, xlim) = ('z [m]', (-100, 100)) if factor_x_axis == 1 else (r'$\phi$ [rad]', (-3.5, 3.5))
+    # (xlabel, xlim) = ('z [m]', (-100, 100))
 
     factor_y_axis = particle_p0c/1e9
+    (ylabel, ylim) = (r'$\Delta E$ [GeV]', (-2*yy.max()*factor_y_axis, 2*yy.max()*factor_y_axis))
+    
     # factor_y_axis = 1
-    (ylabel, ylim) = (r'\Delta p / p_0', (-2*yy.max(), 2*yy.max())) if factor_y_axis == 1 else (r'$\Delta E$ [GeV]', (-2*yy.max()*factor_y_axis, 2*yy.max()*factor_y_axis))
+    # (ylabel, ylim) = (r'\Delta p / p_0', (-2*yy.max(), 2*yy.max()))
 
     # Plot the bucket separatrix (upper and lower)
-    ax.plot((xx+offset_x_separatrix) * factor_x_axis,  yy * factor_y_axis, linestyle='-', color='C1')
-    ax.plot((xx+offset_x_separatrix) * factor_x_axis, -yy * factor_y_axis, linestyle='-', color='C1')
-
-    # Show lines with the RF bucket limits and center
-    ax.vlines((np.array([rfbucket.z_left, rfbucket.z_right, rfbucket.z_sfp_extr])+offset_x_separatrix) * factor_x_axis,
-        ylim[0], 0,
-        linestyle=':', color='xkcd:dark grey')
+    ax.plot((xx+offset_x_separatrix) * factor_x_axis + additional_phi_offset,  yy * factor_y_axis, linestyle='-', color='C1')
+    ax.plot((xx+offset_x_separatrix) * factor_x_axis + additional_phi_offset, -yy * factor_y_axis, linestyle='-', color='C1')
 
     # Plot the particles
-    ax.scatter((particle_distribution.zeta)*factor_x_axis,
+    ax.scatter((particle_distribution.zeta)*factor_x_axis + additional_phi_offset,
                particle_distribution.delta*factor_y_axis)
 
     # Set the labels and limits
@@ -176,22 +170,27 @@ zeta_value_list, delta_value_list, turn_number_list):
     upper_separatrix = rfbucket.separatrix(zeta_range)
     lower_separatrix = -rfbucket.separatrix(zeta_range)
 
-
-
     factor_x_axis = (1 / (particle_beta * c)) * (2*np.pi*frequency_rf)
+    (xlabel, xlim) = ('Phi [rad]', (-np.pi, 2*np.pi))
+    additional_phi_offset = np.deg2rad(line.elements[0].lag_rf) # it's in degrees in Xsuite
+
     # factor_x_axis = 1
-    (xlabel, xlim) = ('z [m]', (-100, 100)) if factor_x_axis == 1 else ('Phi [rad]', (-3.5, 3.5))
+    # (xlabel, xlim) = ('z [m]', (-100, 100))
+    # additional_phi_offset = 0
     
     factor_y_axis = particle_beta*particle_p0c/1e9
-    (ylabel, ylim) = (r'\Delta p / p_0', (-3*upper_separatrix.max(), 3*upper_separatrix.max())) if factor_y_axis == 1 else (r'$\Delta E$ [GeV]', (-2*upper_separatrix.max()*factor_y_axis, 2*upper_separatrix.max()*factor_y_axis))
+    (ylabel, ylim) = (r'$\Delta E$ [GeV]', (-2*upper_separatrix.max()*factor_y_axis, 2*upper_separatrix.max()*factor_y_axis))
+    
+    # factor_y_axis = 1
+    # (ylabel, ylim) = (r'\Delta p / p_0', (-3*upper_separatrix.max(), 3*upper_separatrix.max()))
 
     fig, ax = plt.subplots()
     offset_x_separatrix = -rfbucket.z_sfp
 
-    upper_separatrix_plot, = ax.plot((zeta_range+offset_x_separatrix) * factor_x_axis,   upper_separatrix * factor_y_axis, linestyle='-', color='C1')
-    lower_separatrix_plot, = ax.plot((zeta_range+offset_x_separatrix) * factor_x_axis,  -upper_separatrix * factor_y_axis, linestyle='-', color='C1')
+    upper_separatrix_plot, = ax.plot((zeta_range+offset_x_separatrix) * factor_x_axis + additional_phi_offset,   upper_separatrix * factor_y_axis, linestyle='-', color='C1')
+    lower_separatrix_plot, = ax.plot((zeta_range+offset_x_separatrix) * factor_x_axis + additional_phi_offset,  -upper_separatrix * factor_y_axis, linestyle='-', color='C1')
 
-    scatter = ax.scatter((zeta_value_list[0])*factor_x_axis, delta_value_list[0] * factor_y_axis, c="b", s=20)
+    scatter = ax.scatter((zeta_value_list[0])*factor_x_axis + additional_phi_offset, delta_value_list[0] * factor_y_axis, c="b", s=20)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     plot_title = ax.set_title('Turn 0')
@@ -211,7 +210,7 @@ zeta_value_list, delta_value_list, turn_number_list):
         particle_p0c = p0c_value_list[frame_number]
         particle_beta = np.sqrt(1-1/(gamma_value_list[frame_number]**2))
         factor_x_axis = 1 / (particle_beta * c) * (2*np.pi*frequency_rf)
-        # factor_x_axis = 1
+        additional_phi_offset = np.deg2rad(line.elements[0].lag_rf) # it's in degrees in Xsuite
         factor_y_axis = particle_p0c/1e9
 
         rf_bucket_properties_dict.update({'gamma': gamma_value_list[frame_number]}) 
@@ -222,7 +221,7 @@ zeta_value_list, delta_value_list, turn_number_list):
         upper_separatrix_plot.set_ydata(upper_separatrix*factor_y_axis)
         lower_separatrix_plot.set_ydata(lower_separatrix*factor_y_axis)
 
-        x = np.hstack(zeta_value_list[:frame_number]) * factor_x_axis
+        x = np.hstack(zeta_value_list[:frame_number]) * factor_x_axis + additional_phi_offset
         y = np.hstack(pzeta_value_list[:frame_number]) * factor_y_axis
         data = np.stack([x, y]).T
         scatter.set_offsets(data)
@@ -276,12 +275,14 @@ zeta_value_list, delta_value_list, turn_number_list):
     zeta_range = np.linspace(rfbucket.z_left, rfbucket.z_right, 1000)
     upper_separatrix = rfbucket.separatrix(zeta_range)
     lower_separatrix = -rfbucket.separatrix(zeta_range)
-
-
-
+    
     factor_x_axis = 1 / (particle_beta * c) * (2*np.pi*frequency_rf)
+    (xlabel, xlim) = ('Phi [rad]', (-np.pi, 2*np.pi))
+    additional_phi_offset = np.deg2rad(line.elements[0].lag_rf) # it's in degrees in Xsuite
+    
     # factor_x_axis = 1
-    (xlabel, xlim) = ('z [m]', (-100, 100)) if factor_x_axis == 1 else ('Phi [rad]', (-3.5, 3.5))
+    # (xlabel, xlim) = ('z [m]', (-100, 100))
+    # additional_phi_offset = 0
     
     factor_y_axis = particle_beta * particle_p0c/1e9
     (ylabel, ylim) = (r'\Delta p / p_0', (-3*upper_separatrix.max(), 3*upper_separatrix.max())) if factor_y_axis == 1 else (r'$\Delta E$ [GeV]', (-2*upper_separatrix.max()*factor_y_axis, 2*upper_separatrix.max()*factor_y_axis))
@@ -290,17 +291,16 @@ zeta_value_list, delta_value_list, turn_number_list):
     fig, ax = plt.subplots()
     offset_x_separatrix = -rfbucket.z_sfp
 
-    upper_separatrix_plot, = ax.plot((zeta_range+offset_x_separatrix) * factor_x_axis,   upper_separatrix * factor_y_axis, linestyle='-', color='C1')
-    lower_separatrix_plot, = ax.plot((zeta_range+offset_x_separatrix) * factor_x_axis,  -upper_separatrix * factor_y_axis, linestyle='-', color='C1')
+    upper_separatrix_plot, = ax.plot((zeta_range+offset_x_separatrix) * factor_x_axis + additional_phi_offset,   upper_separatrix * factor_y_axis, linestyle='-', color='C1')
+    lower_separatrix_plot, = ax.plot((zeta_range+offset_x_separatrix) * factor_x_axis + additional_phi_offset,  -upper_separatrix * factor_y_axis, linestyle='-', color='C1')
 
-    scatter = ax.scatter((zeta_value_list[0])*factor_x_axis, delta_value_list[0] * factor_y_axis, c="b", s=20)
+    scatter = ax.scatter((zeta_value_list[0])*factor_x_axis + additional_phi_offset, delta_value_list[0] * factor_y_axis, c="b", s=20)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     plot_title = ax.set_title('Turn 0')
 
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
-
 
     def update_frame_number():
         frame_number = 0
@@ -313,8 +313,8 @@ zeta_value_list, delta_value_list, turn_number_list):
         particle_p0c = p0c_value_list[frame_number]
         particle_beta = np.sqrt(1-1/(gamma_value_list[frame_number]**2))
         factor_x_axis = 1 / (particle_beta * c) * (2*np.pi*frequency_rf)
-        # factor_x_axis = 1
-        factor_y_axis = particle_p0c/1e9
+        additional_phi_offset = np.deg2rad(line.elements[0].lag_rf) # it's in degrees in Xsuite
+        factor_y_axis = particle_beta*particle_p0c/1e9
 
         rf_bucket_properties_dict.update({'gamma': gamma_value_list[frame_number]})
         rfbucket = RFBucket(**rf_bucket_properties_dict)
@@ -323,13 +323,13 @@ zeta_value_list, delta_value_list, turn_number_list):
         upper_separatrix = rfbucket.separatrix(zeta_range)
         lower_separatrix = -rfbucket.separatrix(zeta_range)
 
-        upper_separatrix_plot.set_xdata((zeta_range+offset_x_separatrix)*factor_x_axis)
-        lower_separatrix_plot.set_xdata((zeta_range+offset_x_separatrix)*factor_x_axis)
+        upper_separatrix_plot.set_xdata((zeta_range+offset_x_separatrix)*factor_x_axis + additional_phi_offset)
+        lower_separatrix_plot.set_xdata((zeta_range+offset_x_separatrix)*factor_x_axis + additional_phi_offset)
 
         upper_separatrix_plot.set_ydata(upper_separatrix*factor_y_axis)
         lower_separatrix_plot.set_ydata(lower_separatrix*factor_y_axis)
 
-        x = zeta_value_list[frame_number] * factor_x_axis
+        x = zeta_value_list[frame_number] * factor_x_axis + additional_phi_offset
         y = pzeta_value_list[frame_number] * factor_y_axis
         data = np.stack([x, y]).T
         scatter.set_offsets(data)
@@ -375,6 +375,8 @@ zeta_value_list, delta_value_list, turn_number_list):
     gamma = gamma_value_list[0]
     energy = gamma * m_p * c**2 / (e*1e9) 
     particle_p0c = p0c_value_list[0]
+    particle_beta = np.sqrt(1-1/(gamma**2))
+    frequency_rf = line.elements[0].frequency_rf
 
     rf_bucket_properties_dict = rf_bucket_properties_dict_list[0]
 
@@ -383,22 +385,27 @@ zeta_value_list, delta_value_list, turn_number_list):
     upper_separatrix = rfbucket.separatrix(zeta_range)
     lower_separatrix = -rfbucket.separatrix(zeta_range)
 
-
-
-    # factor_x_axis = 1 / c * 1e9
-    factor_x_axis = 1
-    (xlabel, xlim) = ('z [m]', (-100, 100)) if factor_x_axis == 1 else ('t [ns]', (-0.2, 0.2))
+    factor_x_axis = 1 / (particle_beta * c) * (2*np.pi*frequency_rf)
+    (xlabel, xlim) = ('Phi [rad]', (-np.pi, 2*np.pi))
+    additional_phi_offset = np.deg2rad(rf_bucket_properties_dict['phi_offset_list'])[0] # it's in degrees in Xsuite
+    
+    # factor_x_axis = 1
+    # (xlabel, xlim) = ('z [m]', (-100, 100)) 
+    
     factor_y_axis = particle_p0c/1e9
-    (ylabel, ylim) = (r'\Delta p / p_0', (-3*upper_separatrix.max(), 3*upper_separatrix.max())) if factor_y_axis == 1 else (r'$\Delta E$ [GeV]', (-2*upper_separatrix.max()*factor_y_axis, 2*upper_separatrix.max()*factor_y_axis))
+    (ylabel, ylim) = (r'$\Delta E$ [GeV]', (-2*upper_separatrix.max()*factor_y_axis, 2*upper_separatrix.max()*factor_y_axis))
     ylim = (-0.1, 0.1)
+    
+    # factor_y_axis = 1
+    # (ylabel, ylim) = (r'\Delta p / p_0', (-3*upper_separatrix.max(), 3*upper_separatrix.max()))
 
     fig, ax = plt.subplots()
     offset_x_separatrix = -rfbucket.z_sfp
 
-    upper_separatrix_plot, = ax.plot((zeta_range+offset_x_separatrix) * factor_x_axis,   upper_separatrix * factor_y_axis, linestyle='-', color='C1')
-    lower_separatrix_plot, = ax.plot((zeta_range+offset_x_separatrix) * factor_x_axis,  -upper_separatrix * factor_y_axis, linestyle='-', color='C1')
+    upper_separatrix_plot, = ax.plot((zeta_range+offset_x_separatrix) * factor_x_axis+additional_phi_offset,   upper_separatrix * factor_y_axis, linestyle='-', color='C1')
+    lower_separatrix_plot, = ax.plot((zeta_range+offset_x_separatrix) * factor_x_axis+additional_phi_offset,  -upper_separatrix * factor_y_axis, linestyle='-', color='C1')
 
-    scatter = ax.scatter((zeta_value_list[0])*factor_x_axis, delta_value_list[0] * factor_y_axis, c="b", s=20)
+    scatter = ax.scatter((zeta_value_list[0])*factor_x_axis+additional_phi_offset, delta_value_list[0] * factor_y_axis, c="b", s=20)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     plot_title = ax.set_title('Turn 0')
@@ -416,9 +423,11 @@ zeta_value_list, delta_value_list, turn_number_list):
 
     def update_plot(frame_number):
         particle_p0c = p0c_value_list[frame_number]
-        # factor_x_axis = 1 / c * 1e9
-        factor_x_axis = 1
-        factor_y_axis = particle_p0c/1e9
+        particle_beta = np.sqrt(1-1/(gamma_value_list[frame_number]**2))
+        
+        factor_x_axis = 1 / (particle_beta * c) * (2*np.pi*frequency_rf)
+        additional_phi_offset = np.deg2rad(rf_bucket_properties_dict_list[frame_number]['phi_offset_list'])[0] # it's in degrees in Xsuite
+        factor_y_axis = particle_beta*particle_p0c/1e9
 
         rf_bucket_properties_dict = rf_bucket_properties_dict_list[frame_number]
         rfbucket = RFBucket(**rf_bucket_properties_dict)
@@ -429,13 +438,13 @@ zeta_value_list, delta_value_list, turn_number_list):
 
         offset_x_separatrix = -rfbucket.z_sfp
 
-        upper_separatrix_plot.set_xdata((zeta_range+offset_x_separatrix))
-        lower_separatrix_plot.set_xdata((zeta_range+offset_x_separatrix))
+        upper_separatrix_plot.set_xdata((zeta_range+offset_x_separatrix)*factor_x_axis + additional_phi_offset)
+        lower_separatrix_plot.set_xdata((zeta_range+offset_x_separatrix)*factor_x_axis + additional_phi_offset)
 
         upper_separatrix_plot.set_ydata(upper_separatrix*factor_y_axis)
         lower_separatrix_plot.set_ydata(lower_separatrix*factor_y_axis)
 
-        x = zeta_value_list[frame_number] * factor_x_axis
+        x = zeta_value_list[frame_number] * factor_x_axis + additional_phi_offset
         y = pzeta_value_list[frame_number] * factor_y_axis
         data = np.stack([x, y]).T
         scatter.set_offsets(data)
